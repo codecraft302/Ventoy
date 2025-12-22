@@ -899,6 +899,7 @@ typedef struct ventoy_video_mode
 typedef struct file_fullpath
 {
     char path[256];
+    char alias[256];
     int vlnk_add;
 }file_fullpath;
 
@@ -1328,4 +1329,3 @@ grub_err_t ventoy_cmd_push_menulang(grub_extcmd_context_t ctxt, int argc, char *
 grub_err_t ventoy_cmd_pop_menulang(grub_extcmd_context_t ctxt, int argc, char **args);
 
 #endif /* __VENTOY_DEF_H__ */
-

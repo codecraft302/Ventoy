@@ -3840,10 +3840,13 @@ static grub_err_t ventoy_cmd_sel_auto_install(grub_extcmd_context_t ctxt, int ar
 
     for (i = 0; i < node->templatenum; i++)
     {
+        const char *menu_name = node->templatepath[i].alias[0] ?
+            node->templatepath[i].alias : node->templatepath[i].path;
+
         vtoy_ssprintf(buf, pos, "menuentry \"%s %s\" --class=\"sel_auto_install\" {\n"
                   "  echo \"\"\n}\n",
                   ventoy_get_vmenu_title("VTLANG_AUTOINS_USE"),
-                  node->templatepath[i].path);
+                  menu_name);
     }
 
     g_ventoy_menu_esc = 1;
@@ -7069,5 +7072,4 @@ int ventoy_unregister_all_cmd(void)
     
     return 0;
 }
-
 
