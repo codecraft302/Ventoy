@@ -523,20 +523,53 @@ static int ventoy_plugin_check_fullpath
         ret = ventoy_plugin_check_path(isodisk, node->unData.pcStrVal);
         grub_printf("%s: %s [%s]\n", key, node->unData.pcStrVal, ret ? "FAIL" : "OK");
     }
+    else if (JSON_TYPE_OBJECT == node->enDataType)
+    {
+        const char *path = vtoy_json_get_string_ex(node->pstChild, "path");
+
+        cnt = 1;
+        if (path)
+        {
+            ret = ventoy_plugin_check_path(isodisk, path);
+            grub_printf("%s: %s [%s]\n", key, path, ret ? "FAIL" : "OK");
+        }
+        else
+        {
+            ret = 1;
+            grub_printf("%s: path not found [FAIL]\n", key);
+        }
+    }
     else if (JSON_TYPE_ARRAY == node->enDataType)
     {
         for (child = node->pstChild; child; child = child->pstNext)
         {
-            if (JSON_TYPE_STRING != child->enDataType)
-            {
-                grub_printf("Non string json type\n");
-            }
-            else
+            if (JSON_TYPE_STRING == child->enDataType)
             {
                 rc = ventoy_plugin_check_path(isodisk, child->unData.pcStrVal);
                 grub_printf("%s: %s [%s]\n", key, child->unData.pcStrVal, rc ? "FAIL" : "OK");
                 ret += rc;
                 cnt++;
+            }
+            else if (JSON_TYPE_OBJECT == child->enDataType)
+            {
+                const char *path = vtoy_json_get_string_ex(child->pstChild, "path");
+
+                if (path)
+                {
+                    rc = ventoy_plugin_check_path(isodisk, path);
+                    grub_printf("%s: %s [%s]\n", key, path, rc ? "FAIL" : "OK");
+                    ret += rc;
+                }
+                else
+                {
+                    grub_printf("%s: path not found [FAIL]\n", key);
+                    ret++;
+                }
+                cnt++;
+            }
+            else
+            {
+                grub_printf("Non string json type\n");
             }
         }
     }
@@ -559,6 +592,8 @@ static int ventoy_plugin_parse_fullpath
     VTOY_JSON *node = json;
     VTOY_JSON *child = NULL;
     file_fullpath *path = NULL;
+    const char *pathval = NULL;
+    const char *alias = NULL;
     
     while (node)
     {
@@ -593,11 +628,53 @@ static int ventoy_plugin_parse_fullpath
             rc = 0;
         }
     }
+    else if (JSON_TYPE_OBJECT == node->enDataType)
+    {
+        debug("%s is object type data\n", node->pcName);
+
+        pathval = vtoy_json_get_string_ex(node->pstChild, "path");
+        alias = vtoy_json_get_string_ex(node->pstChild, "alias");
+        if ((!pathval) || (pathval[0] != '/') || (!ventoy_check_file_exist("%s%s", isodisk, pathval)))
+        {
+            debug("%s%s file not found\n", isodisk, pathval ? pathval : "(null)");
+            return 1;
+        }
+
+        path = (file_fullpath *)grub_zalloc(sizeof(file_fullpath));
+        if (path)
+        {
+            grub_snprintf(path->path, sizeof(path->path), "%s", pathval);
+            if (alias)
+            {
+                grub_snprintf(path->alias, sizeof(path->alias), "%s", alias);
+            }
+            *fullpath = path;
+            *pathnum = 1;
+            rc = 0;
+        }
+    }
     else if (JSON_TYPE_ARRAY == node->enDataType)
     {
         for (child = node->pstChild; child; child = child->pstNext)
         {
-            if ((JSON_TYPE_STRING != child->enDataType) || (child->unData.pcStrVal[0] != '/'))
+            if (JSON_TYPE_STRING == child->enDataType)
+            {
+                if (child->unData.pcStrVal[0] != '/')
+                {
+                    debug("Invalid path %s\n", child->unData.pcStrVal);
+                    return 1;
+                }
+            }
+            else if (JSON_TYPE_OBJECT == child->enDataType)
+            {
+                pathval = vtoy_json_get_string_ex(child->pstChild, "path");
+                if ((!pathval) || (pathval[0] != '/'))
+                {
+                    debug("Invalid path data\n");
+                    return 1;
+                }
+            }
+            else
             {
                 debug("Invalid data type:%d\n", child->enDataType);
                 return 1;
@@ -613,9 +690,24 @@ static int ventoy_plugin_parse_fullpath
             
             for (count = 0, child = node->pstChild; child; child = child->pstNext)
             {
-                if (ventoy_check_file_exist("%s%s", isodisk, child->unData.pcStrVal))
+                if (JSON_TYPE_STRING == child->enDataType)
                 {
-                    grub_snprintf(path->path, sizeof(path->path), "%s", child->unData.pcStrVal);
+                    pathval = child->unData.pcStrVal;
+                    alias = NULL;
+                }
+                else
+                {
+                    pathval = vtoy_json_get_string_ex(child->pstChild, "path");
+                    alias = vtoy_json_get_string_ex(child->pstChild, "alias");
+                }
+
+                if (ventoy_check_file_exist("%s%s", isodisk, pathval))
+                {
+                    grub_snprintf(path->path, sizeof(path->path), "%s", pathval);
+                    if (alias)
+                    {
+                        grub_snprintf(path->alias, sizeof(path->alias), "%s", alias);
+                    }
                     path++;
                     count++;
                 }
@@ -3653,5 +3745,4 @@ grub_err_t ventoy_cmd_pop_menulang(grub_extcmd_context_t ctxt, int argc, char **
 
     VENTOY_CMD_RETURN(0);
 }
-
 
