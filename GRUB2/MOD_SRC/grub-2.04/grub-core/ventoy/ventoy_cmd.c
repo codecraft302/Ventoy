@@ -3815,7 +3815,7 @@ static grub_err_t ventoy_cmd_sel_auto_install(grub_extcmd_context_t ctxt, int ar
 
     if (node->autosel >= 0 && node->autosel <= node->templatenum)
     {
-        defidx = node->autosel;
+        defidx = node->autosel + 1;
         if (node->timeout < 0)
         {
             node->cursel = node->autosel - 1;
@@ -3835,6 +3835,9 @@ static grub_err_t ventoy_cmd_sel_auto_install(grub_extcmd_context_t ctxt, int ar
         vtoy_ssprintf(buf, pos, "set timeout=%d\n", node->timeout);        
     }
     
+    vtoy_ssprintf(buf, pos, "menuentry \"$VTLANG_RETURN_PRV_NOESC\" --class=\"sel_auto_install\" {\n"
+                  "  echo \"\"\n}\n");
+
     vtoy_ssprintf(buf, pos, "menuentry \"$VTLANG_NO_AUTOINS_SCRIPT\" --class=\"sel_auto_install\" {\n"
                   "  echo %s\n}\n", "");
 
@@ -3843,9 +3846,8 @@ static grub_err_t ventoy_cmd_sel_auto_install(grub_extcmd_context_t ctxt, int ar
         const char *menu_name = node->templatepath[i].alias[0] ?
             node->templatepath[i].alias : node->templatepath[i].path;
 
-        vtoy_ssprintf(buf, pos, "menuentry \"%s %s\" --class=\"sel_auto_install\" {\n"
+        vtoy_ssprintf(buf, pos, "menuentry \"%s\" --class=\"sel_auto_install\" {\n"
                   "  echo \"\"\n}\n",
-                  ventoy_get_vmenu_title("VTLANG_AUTOINS_USE"),
                   menu_name);
     }
 
@@ -3864,7 +3866,12 @@ static grub_err_t ventoy_cmd_sel_auto_install(grub_extcmd_context_t ctxt, int ar
 
     grub_free(buf);
 
-    node->cursel = g_ventoy_last_entry - 1;
+    if (g_ventoy_last_entry == 0)
+    {
+        VENTOY_CMD_RETURN(GRUB_ERR_NONE);
+    }
+
+    node->cursel = g_ventoy_last_entry - 2;
 
 load:
     grub_check_free(node->filebuf);
@@ -7072,4 +7079,3 @@ int ventoy_unregister_all_cmd(void)
     
     return 0;
 }
-
