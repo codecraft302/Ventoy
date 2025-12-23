@@ -3830,11 +3830,16 @@ static grub_err_t ventoy_cmd_sel_auto_install(grub_extcmd_context_t ctxt, int ar
         return 0;
     }
 
+    grub_env_unset("VTOY_SECOND_EXIT");
+
     if (node->timeout > 0)
     {
         vtoy_ssprintf(buf, pos, "set timeout=%d\n", node->timeout);        
     }
     
+    vtoy_ssprintf(buf, pos, "menuentry \"$VTLANG_RETURN_PRV_NOESC\" --class=\"sel_auto_install\" {\n"
+                  "  echo %s\n}\n", "");
+
     vtoy_ssprintf(buf, pos, "menuentry \"$VTLANG_NO_AUTOINS_SCRIPT\" --class=\"sel_auto_install\" {\n"
                   "  echo %s\n}\n", "");
 
@@ -3843,17 +3848,15 @@ static grub_err_t ventoy_cmd_sel_auto_install(grub_extcmd_context_t ctxt, int ar
         const char *menu_name = node->templatepath[i].alias[0] ?
             node->templatepath[i].alias : node->templatepath[i].path;
 
-        vtoy_ssprintf(buf, pos, "menuentry \"%s %s\" --class=\"sel_auto_install\" {\n"
-                  "  echo \"\"\n}\n",
-                  ventoy_get_vmenu_title("VTLANG_AUTOINS_USE"),
-                  menu_name);
+        vtoy_ssprintf(buf, pos, "menuentry \"%s\" --class=\"sel_auto_install\" {\n"
+                  "  echo \"\"\n}\n", menu_name);
     }
 
     g_ventoy_menu_esc = 1;
     g_ventoy_suppress_esc = 1;
     g_ventoy_suppress_esc_default = defidx;
     g_ventoy_secondary_menu_on = 1;
-    
+
     grub_snprintf(configfile, sizeof(configfile), "configfile mem:0x%llx:size:%d", (ulonglong)(ulong)buf, pos);
     grub_script_execute_sourcecode(configfile);
     
@@ -3864,13 +3867,17 @@ static grub_err_t ventoy_cmd_sel_auto_install(grub_extcmd_context_t ctxt, int ar
 
     grub_free(buf);
 
-    node->cursel = g_ventoy_last_entry - 1;
+    node->cursel = g_ventoy_last_entry - 2;
 
 load:
     grub_check_free(node->filebuf);
     node->filelen = 0;
 
-    if (node->cursel >= 0 && node->cursel < node->templatenum)
+    if(node->cursel == -2)
+    {
+        grub_env_set("VTOY_SECOND_EXIT", "1");
+    }
+    else if (node->cursel >= 0 && node->cursel < node->templatenum)
     {
         file = ventoy_grub_file_open(VENTOY_FILE_TYPE, "%s%s", ventoy_get_env("vtoy_iso_part"), 
             node->templatepath[node->cursel].path);
