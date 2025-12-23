@@ -3815,7 +3815,7 @@ static grub_err_t ventoy_cmd_sel_auto_install(grub_extcmd_context_t ctxt, int ar
 
     if (node->autosel >= 0 && node->autosel <= node->templatenum)
     {
-        defidx = node->autosel;
+        defidx = node->autosel + 1;
         if (node->timeout < 0)
         {
             node->cursel = node->autosel - 1;
@@ -7079,4 +7079,3 @@ int ventoy_unregister_all_cmd(void)
     
     return 0;
 }
-
