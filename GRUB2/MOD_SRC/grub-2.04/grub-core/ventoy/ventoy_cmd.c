@@ -3837,10 +3837,10 @@ static grub_err_t ventoy_cmd_sel_auto_install(grub_extcmd_context_t ctxt, int ar
         vtoy_ssprintf(buf, pos, "set timeout=%d\n", node->timeout);        
     }
     
-    vtoy_ssprintf(buf, pos, "menuentry \"$VTLANG_RETURN_PRV_NOESC\" --class=\"sel_auto_install\" {\n"
+    vtoy_ssprintf(buf, pos, "menuentry \"$VTLANG_RETURN_PRV_NOESC\" --class=\"second_return\" {\n"
                   "  echo %s\n}\n", "");
 
-    vtoy_ssprintf(buf, pos, "menuentry \"$VTLANG_NO_AUTOINS_SCRIPT\" --class=\"sel_auto_install\" {\n"
+    vtoy_ssprintf(buf, pos, "menuentry \"$VTLANG_NO_AUTOINS_SCRIPT\" --class=\"no_auto_install\" {\n"
                   "  echo %s\n}\n", "");
 
     for (i = 0; i < node->templatenum; i++)
